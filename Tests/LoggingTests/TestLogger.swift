@@ -20,7 +20,11 @@ internal struct TestLogging {
     private let recorder = Recorder() // shared among loggers
 
     func make(label: String) -> LogHandler {
-        return TestLogHandler(label: label, config: self.config, recorder: self.recorder)
+        self.make(label: label, logLevel: nil)
+    }
+
+    func make(label: String, logLevel: Logger.Level?) -> LogHandler {
+        return TestLogHandler(label: label, config: self.config, recorder: self.recorder, logLevel: logLevel)
     }
 
     var config: Config { return self._config }
@@ -35,12 +39,15 @@ internal struct TestLogHandler: LogHandler {
     private var logger: Logger // the actual logger
 
     let label: String
-    init(label: String, config: Config, recorder: Recorder) {
+    init(label: String, config: Config, recorder: Recorder, logLevel: Logger.Level? = nil) {
         self.label = label
         self.config = config
         self.recorder = recorder
         self.logger = Logger(label: "test", StreamLogHandler.standardOutput(label: label))
         self.logger.logLevel = .debug
+        if let logLevel = logLevel {
+            self.logLevel = logLevel
+        }
     }
 
     func log(level: Logger.Level, message: Logger.Message, metadata: Logger.Metadata?, file: String, function: String, line: UInt) {

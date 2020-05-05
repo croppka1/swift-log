@@ -476,7 +476,7 @@ public struct MultiplexLogHandler: LogHandler {
 
     public var logLevel: Logger.Level {
         get {
-            return self.handlers[0].logLevel
+            return self.handlers.map { $0.logLevel }.min() ?? .notice
         }
         set {
             self.mutatingForEachHandler {
@@ -489,7 +489,9 @@ public struct MultiplexLogHandler: LogHandler {
                     message: Logger.Message,
                     metadata: Logger.Metadata?,
                     file: String, function: String, line: UInt) {
-        self.handlers.forEach { handler in
+        self.handlers
+            .filter { $0.logLevel <= level }
+            .forEach { handler in
             handler.log(level: level, message: message, metadata: metadata, file: file, function: function, line: line)
         }
     }

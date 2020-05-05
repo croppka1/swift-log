@@ -57,11 +57,13 @@ class LoggingTest: XCTestCase {
         logging.history.assertExist(level: .error, message: "error")
     }
 
-    func testMultiplex() throws {
-        // bootstrap with our test logging impl
+    func testMultiplex() {
         let logging1 = TestLogging()
         let logging2 = TestLogging()
-        LoggingSystem.bootstrapInternal { MultiplexLogHandler([logging1.make(label: $0), logging2.make(label: $0)]) }
+        LoggingSystem.bootstrapInternal { MultiplexLogHandler([
+            logging1.make(label: $0, logLevel: .critical),
+            logging2.make(label: $0, logLevel: .trace)])
+        }
 
         var logger = Logger(label: "test")
         logger.logLevel = .warning
@@ -72,6 +74,30 @@ class LoggingTest: XCTestCase {
         logging2.history.assertNotExist(level: .info, message: "hello world?")
         logging1.history.assertExist(level: .warning, message: "hello world!", metadata: ["foo": "bar"])
         logging2.history.assertExist(level: .warning, message: "hello world!", metadata: ["foo": "bar"])
+    }
+
+    func testMultiplexLogLevels() throws {
+        // bootstrap with our test logging impl
+        let logging1 = TestLogging()
+        let logging2 = TestLogging()
+        LoggingSystem.bootstrapInternal { MultiplexLogHandler([
+            logging1.make(label: $0, logLevel: .critical),
+            logging2.make(label: $0, logLevel: .trace)])
+        }
+
+        var logger = Logger(label: "test")
+        logger.info("hello world?")
+        logger.warning("hello world!")
+        logger[metadataKey: "foo"] = "bar"
+        logger.critical("¡hola mundo!")
+
+        logging1.history.assertNotExist(level: .info, message: "hello world?")
+        logging1.history.assertNotExist(level: .warning, message: "hello world!")
+        logging1.history.assertExist(level: .critical, message: "¡hola mundo!", metadata: ["foo": "bar"])
+
+        logging2.history.assertExist(level: .info, message: "hello world?")
+        logging2.history.assertExist(level: .warning, message: "hello world!")
+        logging2.history.assertExist(level: .critical, message: "¡hola mundo!", metadata: ["foo": "bar"])
     }
 
     enum TestError: Error {
